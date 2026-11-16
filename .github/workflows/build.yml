@@ -7,10 +7,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Unzip project
+        run: |
+          zipfile=$(find . -name '*.zip' -not -path './.git/*' | head -n 1)
+          echo "Found zip: $zipfile"
+          mkdir -p /tmp/proj
+          unzip -o "$zipfile" -d /tmp/proj
+
       - name: Find project folder
         id: find
         run: |
-          f=$(find . -name build.gradle -not -path './.git/*' | head -n 1)
+          f=$(find /tmp/proj -name build.gradle | head -n 1)
           echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
 
       - name: Fix versions
