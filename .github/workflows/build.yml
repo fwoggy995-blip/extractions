@@ -6,15 +6,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Find project folder
+        id: find
+        run: |
+          f=$(find . -name build.gradle -not -path './.git/*' | head -n 1)
+          echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
+
+      - name: Fix versions
+        working-directory: ${{ steps.find.outputs.dir }}
+        run: |
+          sed -i "s/id 'fabric-loom' version '.*'/id 'fabric-loom' version '1.15-SNAPSHOT'/" build.gradle
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2G
+          org.gradle.parallel=true
+          org.gradle.configuration-cache=false
+          minecraft_version=1.21.11
+          yarn_mappings=1.21.11+build.4
+          loader_version=0.18.4
+          fabric_version=0.141.3+1.21.11
+          mod_version=0.1.0
+          maven_group=com.donutlens
+          archives_base_name=donutlens
+          EOF
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 9.2.0
-      - run: gradle build
+
+      - name: Build
+        run: gradle build
+        working-directory: ${{ steps.find.outputs.dir }}
+
       - uses: actions/upload-artifact@v4
         with:
           name: donutlens
-          path: build/libs/*.jar
+          path: |
+            ${{ steps.find.outputs.dir }}/build/libs/*.jar
+            !${{ steps.find.outputs.dir }}/build/libs/*-sources.jar
